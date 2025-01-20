@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import styles from "./Signup.module.css";
 import { Link, useNavigate } from "react-router-dom";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -19,7 +21,7 @@ const Signup = () => {
       userDatas = [];
     }
     if (userDatas.some((obj) => obj.email == userData.email)) {
-      setUserExists("User Already Exists");
+      toast.error("User Already Exists");
       return;
     }
 
@@ -77,14 +79,15 @@ const Signup = () => {
       <Link className={styles.link} to="/login">
         <p>Already have an account? Login Now!</p>
       </Link>
-      <div className={styles.error}>{userExists}</div>
+      {/* <div className={styles.error}>{userExists}</div> */}
+      <ToastContainer />
 
       {/* Toast message */}
-      {showToast && (
+      {/* {showToast && (
         <div className={styles.error}>
           <p>User Created Successfully!</p>
         </div>
-      )}
+      )} */}
     </div>
   );
 };

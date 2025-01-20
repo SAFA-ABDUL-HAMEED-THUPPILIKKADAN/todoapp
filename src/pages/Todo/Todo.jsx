@@ -83,12 +83,27 @@ const Todo = () => {
     setIsEditing(true);
   };
 
+  // const cancelEdit = () => {
+  //   if (previousTodo) {
+  //     setCurrentTodo(previousTodo);
+  //     setPreviousTodo(null);
+  //   }
+  //   setIsEditing(false);
+  //   setCurrentTodo({});
+  // };
+
   const cancelEdit = () => {
-    if (previousTodo) {
-      setCurrentTodo(previousTodo);
-      setPreviousTodo(null);
-    }
+    // Reset the form fields to empty values
+    setCurrentTodo({
+      id: uuidv4(),
+      title: "",
+      deadline: "",
+      createdAt: new Date().toISOString(),
+      completedAt: null,
+      isCompleted: false,
+    });
     setIsEditing(false);
+    setPreviousTodo(null); // Optionally clear previous todo if needed
   };
 
   const deleteTodo = (id) => {
