@@ -13,7 +13,6 @@ const Signup = () => {
   });
 
   const [userExists, setUserExists] = useState("");
-  const [showToast, setShowToast] = useState(false);
 
   const storeData = () => {
     let userDatas = JSON.parse(localStorage.getItem("userDatas"));
@@ -21,12 +20,14 @@ const Signup = () => {
       userDatas = [];
     }
     if (userDatas.some((obj) => obj.email == userData.email)) {
-      toast.error("User Already Exists");
+      setUserExists("User Already Exists");
       return;
     }
 
     userDatas.push(userData);
     localStorage.setItem("userDatas", JSON.stringify(userDatas));
+
+    toast.success("User Created Successfully!");
 
     setShowToast(true);
 
@@ -79,15 +80,9 @@ const Signup = () => {
       <Link className={styles.link} to="/login">
         <p>Already have an account? Login Now!</p>
       </Link>
-      {/* <div className={styles.error}>{userExists}</div> */}
-      <ToastContainer />
+      <div className={styles.error}>{userExists}</div>
 
-      {/* Toast message */}
-      {/* {showToast && (
-        <div className={styles.error}>
-          <p>User Created Successfully!</p>
-        </div>
-      )} */}
+      <ToastContainer />
     </div>
   );
 };
