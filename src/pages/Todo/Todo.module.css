@@ -1,0 +1,107 @@
+.mainContainer {
+  margin: 50px 500px;
+}
+
+.todo {
+  margin-bottom: 30px;
+  font-size: 50px;
+  font-family: "Lucida Sans", "Lucida Sans Regular", "Lucida Grande",
+    "Lucida Sans Unicode", Geneva, Verdana, sans-serif;
+  font-weight: 600;
+}
+
+.title {
+  /* width: 250px; */
+  /* height: 42px; */
+  margin-right: 20px;
+  border-radius: 15px;
+  padding: 10px;
+}
+
+.btn1 {
+  font-size: 18px;
+  font-weight: 500;
+  padding: 5px;
+  border-radius: 15px;
+  background-color: rgb(146, 184, 241);
+}
+
+.container {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 5px;
+  font-size: 15px;
+  font-family: "Lucida Sans", "Lucida Sans Regular", "Lucida Grande",
+    "Lucida Sans Unicode", Geneva, Verdana, sans-serif;
+}
+
+.miniContainer {
+  line-height: 40px;
+}
+
+.btn2 {
+  margin: 15px;
+  font-size: 20px;
+  font-weight: 500;
+  padding: 8px;
+  border-radius: 15px;
+  background-color: rgb(222, 224, 85);
+}
+
+.btn3 {
+  font-size: 20px;
+  font-weight: 500;
+  padding: 8px;
+  border-radius: 15px;
+  background-color: rgb(62, 153, 62);
+}
+
+.btn4 {
+  margin: 15px;
+  font-size: 20px;
+  font-weight: 500;
+  padding: 8px;
+  border-radius: 15px;
+  background-color: rgb(224, 85, 85);
+}
+
+.btn5 {
+  margin-left: 900px;
+  margin-top: -500px;
+  margin-bottom: -100px;
+  font-size: 20px;
+  font-weight: 500;
+  padding: 8px;
+  border-radius: 15px;
+  background-color: rgb(80, 147, 127);
+}
+
+.heading {
+  margin: 10px;
+  border-bottom: 1px solid black;
+  font-size: 30px;
+  font-family: "Lucida Sans", "Lucida Sans Regular", "Lucida Grande",
+    "Lucida Sans Unicode", Geneva, Verdana, sans-serif;
+  font-weight: 600;
+}
+
+.miniTitle {
+  font-size: 20px;
+  margin: 15px;
+  font-family: "Lucida Sans", "Lucida Sans Regular", "Lucida Grande",
+    "Lucida Sans Unicode", Geneva, Verdana, sans-serif;
+  color: rgb(103, 32, 120);
+}
+
+.tasks {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.tasks1 {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
