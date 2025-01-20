@@ -8,7 +8,6 @@ const Todo = () => {
   const [currentUser, setCurrentUser] = useState(
     JSON.parse(localStorage.getItem("loggedInUser"))
   );
-
   const [userTodos, setUserTodos] = useState([]);
   const [currentTodo, setCurrentTodo] = useState({
     id: uuidv4(),
@@ -31,52 +30,16 @@ const Todo = () => {
     setUserTodos(localUserTodos);
   }, []);
 
-  // const updateTodo = () => {
-  //   if (currentTodo.title.trim() === "" || currentTodo.deadline.trim() === "")
-  //     return;
-
-  //   let updatedTodos;
-  //   const todoData = JSON.parse(localStorage.getItem("todoData"));
-
-  //   if (isEditing) {
-  //     updatedTodos = userTodos.map((todo) =>
-  //       todo.id === currentTodo.id
-  //         ? {
-  //             ...todo,
-  //             title: currentTodo.title,
-  //             deadline: currentTodo.deadline,
-  //           }
-  //         : todo
-  //     );
-  //     setIsEditing(false);
-  //   } else {
-  //     updatedTodos = [...userTodos, currentTodo];
-  //   }
-
-  //   localStorage.setItem("todoData", JSON.stringify(todoData));
-  //   setUserTodos(updatedTodos);
-  //   todoData[currentUser.email] = updatedTodos;
-
-  //   setCurrentTodo({
-  //     id: uuidv4(),
-  //     title: "",
-  //     deadline: "",
-  //     createdAt: new Date().toISOString(),
-  //     completedAt: null,
-  //     isCompleted: false,
-  //   });
-  //   setPreviousTodo(null);
-  // };
-
   const updateTodo = () => {
     if (currentTodo.title.trim() === "" || currentTodo.deadline.trim() === "")
       return;
 
     const todoData = JSON.parse(localStorage.getItem("todoData")) || {};
-    let updatedTodos;
+    const deadlineDate = new Date(currentTodo.deadline);
+    const now = new Date();
 
+    let updatedTodos;
     if (isEditing) {
-      // Update the specific todo
       updatedTodos = userTodos.map((todo) =>
         todo.id === currentTodo.id
           ? {
@@ -88,18 +51,20 @@ const Todo = () => {
       );
       setIsEditing(false);
     } else {
-      // Add new todo
-      updatedTodos = [...userTodos, currentTodo];
+      updatedTodos = [
+        ...userTodos,
+        {
+          ...currentTodo,
+          isDelayed: deadlineDate < now && !currentTodo.isCompleted,
+        },
+      ];
     }
 
-    // Update the todoData for the current user
     todoData[currentUser.email] = updatedTodos;
 
-    // Save updated todos in localStorage
     localStorage.setItem("todoData", JSON.stringify(todoData));
-
-    // Update the state
     setUserTodos(updatedTodos);
+
     setCurrentTodo({
       id: uuidv4(),
       title: "",
@@ -158,12 +123,18 @@ const Todo = () => {
     const delayed = [];
 
     userTodos.forEach((todo) => {
+      const deadline = new Date(todo.deadline);
       if (!todo.isCompleted) {
-        pending.push(todo);
+        if (deadline < now) {
+          delayed.push(todo);
+        } else {
+          pending.push(todo);
+        }
       } else {
-        const deadline = new Date(todo.deadline);
         const completedAt = new Date(todo.completedAt);
         if (completedAt <= deadline) {
+          completedOnTime.push(todo);
+        } else if (completedAt > deadline) {
           completedOnTime.push(todo);
         } else {
           delayed.push(todo);
@@ -175,6 +146,11 @@ const Todo = () => {
   };
 
   const { pending, completedOnTime, delayed } = categorizeTasks();
+
+  const formatDate = (date) => {
+    const options = { day: "2-digit", month: "2-digit", year: "numeric" };
+    return new Date(date).toLocaleDateString("en-GB", options);
+  };
 
   return (
     <>
@@ -233,27 +209,30 @@ const Todo = () => {
           <h2 className={styles.heading}>Pending Tasks</h2>
           {pending.map((todo) => (
             <div key={todo.id}>
-              <div className={styles.tasks1}>
-                <p className={styles.miniTitle}>{todo.title}</p>
-                <p className={styles.container}>
-                  Deadline: {new Date(todo.deadline).toLocaleString()}
-                </p>
+              <p className={styles.miniTitle}>{todo.title}</p>
+              <p className={styles.container}>
+                Deadline: {formatDate(todo.deadline)}
+              </p>
+              <div className={styles.buttons}>
+                <button
+                  onClick={() => markTodoDone(todo.id)}
+                  className={styles.btn3}
+                >
+                  Mark as Done
+                </button>
+                <button
+                  onClick={() => deleteTodo(todo.id)}
+                  className={styles.btn4}
+                >
+                  Delete
+                </button>
+                <button
+                  onClick={() => editTodo(todo.id)}
+                  className={styles.btn2}
+                >
+                  Edit
+                </button>
               </div>
-              <button
-                onClick={() => markTodoDone(todo.id)}
-                className={styles.btn3}
-              >
-                Mark as Done
-              </button>
-              <button
-                onClick={() => deleteTodo(todo.id)}
-                className={styles.btn4}
-              >
-                Delete
-              </button>
-              <button onClick={() => editTodo(todo.id)} className={styles.btn2}>
-                Edit
-              </button>
             </div>
           ))}
         </div>
@@ -264,7 +243,7 @@ const Todo = () => {
             <div key={todo.id}>
               <p className={styles.miniTitle}>{todo.title}</p>
               <p className={styles.container}>
-                Completed At: {new Date(todo.completedAt).toLocaleString()}
+                Completed At: {formatDate(todo.completedAt)}
               </p>
             </div>
           ))}
@@ -275,13 +254,16 @@ const Todo = () => {
           {delayed.map((todo) => (
             <div key={todo.id}>
               <p className={styles.miniTitle}>{todo.title}</p>
-              <div className={styles.miniContainer}>
-                <p className={styles.container}>
-                  Completed At: {new Date(todo.completedAt).toLocaleString()}
-                </p>
-                <p className={styles.container}>
-                  Deadline: {new Date(todo.deadline).toLocaleString()}
-                </p>
+              <p className={styles.container}>
+                Deadline: {formatDate(todo.deadline)}
+              </p>
+              <div className={styles.buttons}>
+                <button
+                  onClick={() => markTodoDone(todo.id)}
+                  className={styles.btn3}
+                >
+                  Mark as Done
+                </button>
               </div>
             </div>
           ))}

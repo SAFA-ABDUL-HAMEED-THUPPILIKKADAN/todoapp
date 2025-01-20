@@ -23,17 +23,27 @@ const Login = () => {
     if (!userDatas) {
       userDatas = [];
     }
-    if (
-      userDatas.some(
-        (obj) =>
-          obj.email == userData.email && obj.password == userData.password
-      )
-    ) {
-      const user = userDatas.filter((obj) => obj.email == userData.email)[0];
+    // if (userDatas.some((obj) => obj.email == userData.email)) {
+    //   if (userDatas.some((obj) => obj.password == userData.password)) {
+    //     setErrorMessage("Password is Incorrect");
+    //   }
+
+    //   const user = userDatas.filter((obj) => obj.email == userData.email)[0];
+    //   localStorage.setItem("loggedInUser", JSON.stringify(user));
+    //   navigate("/todo");
+    // } else {
+    //   setErrorMessage("Email does not exist");
+    // }
+
+    const user = userDatas.find((obj) => obj.email === userData.email);
+
+    if (!user) {
+      setErrorMessage("Email does not exist");
+    } else if (user.password !== userData.password) {
+      setErrorMessage("Password is Incorrect");
+    } else {
       localStorage.setItem("loggedInUser", JSON.stringify(user));
       navigate("/todo");
-    } else {
-      setErrorMessage("Email does not exist");
     }
   };
 
