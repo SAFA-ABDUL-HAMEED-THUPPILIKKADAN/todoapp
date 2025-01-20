@@ -27,14 +27,13 @@ const Signup = () => {
     userDatas.push(userData);
     localStorage.setItem("userDatas", JSON.stringify(userDatas));
 
-    toast.success("User Created Successfully!");
-
-    setShowToast(true);
-
-    setTimeout(() => {
-      setShowToast(false);
-      navigate("/login"); // Navigate to login page
-    }, 3000);
+    toast.success("User Created Successfully!", {
+      autoClose: 3000, // Toast will disappear after 3 seconds
+      onClose: () => {
+        // Navigate to login after toast closes
+        navigate("/login");
+      },
+    });
   };
 
   return (
