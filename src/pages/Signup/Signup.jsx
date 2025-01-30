@@ -3,6 +3,7 @@ import styles from "./Signup.module.css";
 import { Link, useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import axios from "axios";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -14,26 +15,50 @@ const Signup = () => {
 
   const [userExists, setUserExists] = useState("");
 
-  const storeData = () => {
-    let userDatas = JSON.parse(localStorage.getItem("userDatas"));
-    if (!userDatas) {
-      userDatas = [];
-    }
-    if (userDatas.some((obj) => obj.email == userData.email)) {
-      setUserExists("User Already Exists");
-      return;
-    }
+  const storeData = async () => {
+    try {
+      const response = await axios.post(
+        "http://127.0.0.1:8000/signup",
+        userData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-    userDatas.push(userData);
-    localStorage.setItem("userDatas", JSON.stringify(userDatas));
+      // Show success message
+      toast.success("Signup successful! Redirecting to login...", {
+        position: "top-right",
+        autoClose: 3000,
+      });
 
-    toast.success("User Created Successfully!", {
-      autoClose: 3000, // Toast will disappear after 3 seconds
-      onClose: () => {
-        // Navigate to login after toast closes
-        navigate("/login");
-      },
-    });
+      console.log("Signup Successful:", response.data);
+
+      // Redirect to login page after successful signup
+      setTimeout(() => {
+        navigate("/login"); // Make sure this URL matches the actual login route
+      }, 3000); // Adjust the time if necessary
+    } catch (error) {
+      console.error("Signup Failed:", error.response?.data || error.message);
+
+      // Handle error (show message)
+      if (error.response && error.response.data) {
+        setUserExists(
+          error.response.data.detail || "Signup failed. Try again."
+        );
+        toast.error(error.response.data.detail || "Signup failed!", {
+          position: "top-right",
+          autoClose: 3000,
+        });
+      } else {
+        setUserExists("Something went wrong. Please try again later.");
+        toast.error("Something went wrong!", {
+          position: "top-right",
+          autoClose: 3000,
+        });
+      }
+    }
   };
 
   return (
