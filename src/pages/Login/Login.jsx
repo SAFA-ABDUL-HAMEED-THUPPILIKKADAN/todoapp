@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import styles from "../Signup/Signup.module.css";
 import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -12,38 +13,39 @@ const Login = () => {
 
   const [errorMessage, setErrorMessage] = useState("");
 
-  useEffect(() => {
-    if (localStorage.getItem("loggedInUser")) {
-      navigate("/todo");
-    }
-  });
+  // useEffect(() => {
+  //   if (localStorage.getItem("loggedInUser")) {
+  //     navigate("/todo");
+  //   }
+  // }, [navigate]);
 
-  const loginUser = () => {
-    let userDatas = JSON.parse(localStorage.getItem("userDatas"));
-    if (!userDatas) {
-      userDatas = [];
-    }
-    // if (userDatas.some((obj) => obj.email == userData.email)) {
-    //   if (userDatas.some((obj) => obj.password == userData.password)) {
-    //     setErrorMessage("Password is Incorrect");
-    //   }
+  const loginUser = async () => {
+    try {
+      const response = await axios.post(
+        "http://127.0.0.1:8000/login", // Your login API endpoint
+        userData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-    //   const user = userDatas.filter((obj) => obj.email == userData.email)[0];
-    //   localStorage.setItem("loggedInUser", JSON.stringify(user));
-    //   navigate("/todo");
-    // } else {
-    //   setErrorMessage("Email does not exist");
-    // }
-
-    const user = userDatas.find((obj) => obj.email === userData.email);
-
-    if (!user) {
-      setErrorMessage("Email does not exist");
-    } else if (user.password !== userData.password) {
-      setErrorMessage("Password is Incorrect");
-    } else {
-      localStorage.setItem("loggedInUser", JSON.stringify(user));
-      navigate("/todo");
+      if (response.data.access_token) {
+        localStorage.setItem("access_token", response.data.access_token); // Store the token in localStorage
+        navigate("/todo");
+      }
+    } catch (error) {
+      // Handle errors here
+      if (error.response) {
+        if (error.response.data.email) {
+          setErrorMessage("Email does not exist");
+        } else if (error.response.data.password) {
+          setErrorMessage("Incorrect password");
+        }
+      } else {
+        setErrorMessage("An error occurred. Please try again.");
+      }
     }
   };
 

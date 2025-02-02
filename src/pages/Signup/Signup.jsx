@@ -27,37 +27,36 @@ const Signup = () => {
         }
       );
 
+      console.log(response.data);
+
       // Show success message
-      toast.success("Signup successful! Redirecting to login...", {
-        position: "top-right",
-        autoClose: 3000,
+      toast.success("User Created Successfully!", {
+        autoClose: 3000, // Toast will disappear after 3 seconds
+        onClose: () => {
+          // Navigate to login after toast closes
+          navigate("/login");
+        },
       });
-
-      console.log("Signup Successful:", response.data);
-
-      // Redirect to login page after successful signup
-      setTimeout(() => {
-        navigate("/login"); // Make sure this URL matches the actual login route
-      }, 3000); // Adjust the time if necessary
     } catch (error) {
-      console.error("Signup Failed:", error.response?.data || error.message);
-
-      // Handle error (show message)
-      if (error.response && error.response.data) {
-        setUserExists(
-          error.response.data.detail || "Signup failed. Try again."
+      if (error.response && error.response.status === 400) {
+        // If email is already registered, show the specific error message
+        toast.error(
+          error.response.data.detail ||
+            "Something went wrong. Please try again.",
+          {
+            position: "top-right",
+            autoClose: 3000,
+          }
         );
-        toast.error(error.response.data.detail || "Signup failed!", {
-          position: "top-right",
-          autoClose: 3000,
-        });
       } else {
-        setUserExists("Something went wrong. Please try again later.");
-        toast.error("Something went wrong!", {
+        // Show a generic error message if something else goes wrong
+        toast.error("Signup failed. Please try again later.", {
           position: "top-right",
           autoClose: 3000,
         });
       }
+
+      console.error("Signup Failed:", error.response?.data || error.message);
     }
   };
 
