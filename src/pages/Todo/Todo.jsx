@@ -185,7 +185,6 @@ const Todo = () => {
       console.error("Error updating todo:", error);
     }
   };
-
   const categorizeTasks = () => {
     const now = new Date();
     const pending = [];
@@ -194,18 +193,24 @@ const Todo = () => {
 
     userTodos.forEach((todo) => {
       const deadline = new Date(todo.deadline);
+
       if (!todo.isCompleted) {
         if (deadline < now) {
-          delayed.push(todo);
+          delayed.push(todo); // Task not completed and deadline has passed
         } else {
-          pending.push(todo);
+          pending.push(todo); // Task not completed but still within deadline
         }
       } else {
         const completedAt = new Date(todo.completedAt);
+
         if (completedAt <= deadline) {
-          completedOnTime.push(todo);
+          completedOnTime.push(todo); // Task was completed before or exactly at the deadline
+        } else if (!todo.completedAt) {
+          delayed.push(todo); // Edge case: completedAt is null
+        } else if (deadline < now) {
+          completedOnTime.push(todo); // ✅ FIX: Previously delayed task, now marked as done!
         } else {
-          delayed.push(todo); // If completed after deadline, move to delayed
+          delayed.push(todo); // Completed after the deadline
         }
       }
     });
