@@ -1,14 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
 import styles from "./Todo.module.css";
 
 const Todo = () => {
   const navigate = useNavigate();
-  // const [currentUser, setCurrentUser] = useState(
-  //   JSON.parse(localStorage.getItem("loggedInUser"))
-  // );
   const [userTodos, setUserTodos] = useState([]);
+  const [username, setUsername] = useState("");
   const [currentTodo, setCurrentTodo] = useState({
     title: "",
     deadline: "",
@@ -16,141 +13,76 @@ const Todo = () => {
     completedAt: null,
     isCompleted: false,
   });
-  const [previousTodo, setPreviousTodo] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
 
-  // useEffect(() => {
-  //   if (!localStorage.getItem("loggedInUser")) {
-  //     navigate("/login");
-  //   }
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    const user = localStorage.getItem("loggedInUser");
+    // if (!token || !user) {
+    //   navigate("/login");
+    //   return;
+    // }
+    setUsername(user);
+    fetchTodos(token);
+  }, []);
 
-  //   const todoData = JSON.parse(localStorage.getItem("todoData")) || {};
-  //   const localUserTodos = todoData[currentUser.email] || [];
-  //   setUserTodos(localUserTodos);
-  // }, []);
-  const updateTodo = async () => {
-    if (currentTodo.title.trim() === "" || currentTodo.deadline.trim() === "")
-      return;
-
-    const token = localStorage.getItem("access_token"); // Ensure token is available
-    if (!token) {
-      navigate("/login");
-      return;
+  const fetchTodos = async (token) => {
+    try {
+      const response = await fetch("http://localhost:8000/getAll", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error("Failed to fetch todos");
+      const data = await response.json();
+      setUserTodos(data);
+    } catch (error) {
+      console.error("Error fetching todos:", error);
     }
+  };
+
+  const updateTodo = async () => {
+    if (!currentTodo.title.trim() || !currentTodo.deadline.trim()) return;
+    const token = localStorage.getItem("access_token");
+    if (!token) return navigate("/login");
 
     try {
-      let response;
-      if (isEditing) {
-        // Send a PUT request to update an existing todo
-        response = await fetch(
-          `http://localhost:8000/update/${currentTodo.id}`,
-          {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              title: currentTodo.title,
-              deadline: currentTodo.deadline,
-              isCompleted: currentTodo.isCompleted,
-            }),
-          }
-        );
-      } else {
-        // Send a POST request to create a new todo
-        response = await fetch("http://localhost:8000/create", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            title: currentTodo.title,
-            deadline: currentTodo.deadline,
-            isCompleted: false,
-          }),
-        });
-      }
+      const method = isEditing ? "PUT" : "POST";
+      const url = isEditing
+        ? `http://localhost:8000/update/${currentTodo.id}`
+        : "http://localhost:8000/create";
 
-      if (!response.ok) {
-        throw new Error("Failed to save todo");
-      }
-
-      const updatedTodo = await response.json();
-
-      if (isEditing) {
-        // Update UI for edited todo
-        setUserTodos(
-          userTodos.map((todo) =>
-            todo.id === updatedTodo.id ? updatedTodo : todo
-          )
-        );
-      } else {
-        // Add new todo to UI
-        setUserTodos([...userTodos, updatedTodo]);
-      }
-
-      cancelEdit(); // Reset form fields after update
+      const response = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(currentTodo),
+      });
+      if (!response.ok) throw new Error("Failed to save todo");
+      fetchTodos(token);
+      cancelEdit();
     } catch (error) {
       console.error("Error saving todo:", error);
     }
   };
 
-  const editTodo = (id) => {
-    const todoToEdit = userTodos.find((todo) => todo.id === id);
-    setPreviousTodo({ ...todoToEdit });
-    setCurrentTodo(todoToEdit);
-    setIsEditing(true);
-  };
-
-  const cancelEdit = () => {
-    setCurrentTodo({
-      title: "",
-      deadline: "",
-      createdAt: new Date().toISOString(),
-      completedAt: null,
-      isCompleted: false,
-    });
-    setIsEditing(false);
-    setPreviousTodo(null);
-  };
-
   const deleteTodo = async (id) => {
+    const token = localStorage.getItem("access_token");
     try {
-      const token = localStorage.getItem("access_token"); // Ensure the token is available
-      if (!token) {
-        console.error("No token found, user is not authenticated");
-        return;
-      }
-
       const response = await fetch(`http://localhost:8000/delete/${id}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`, // Sending JWT token
-          "Content-Type": "application/json",
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Failed to delete todo");
-      }
-
-      setUserTodos(userTodos.filter((todo) => todo.id !== id));
+      if (!response.ok) throw new Error("Failed to delete todo");
+      fetchTodos(token);
     } catch (error) {
       console.error("Error deleting todo:", error);
     }
   };
 
   const markTodoDone = async (id) => {
+    const token = localStorage.getItem("access_token");
     try {
-      const token = localStorage.getItem("access_token");
-      if (!token) {
-        console.error("No token found, user is not authenticated");
-        return;
-      }
-
       const response = await fetch(`http://localhost:8000/update/${id}`, {
         method: "PUT",
         headers: {
@@ -158,33 +90,17 @@ const Todo = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          isCompleted: true, // This triggers completion in the backend
+          isCompleted: true,
+          completedAt: new Date().toISOString(),
         }),
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Failed to update todo");
-      }
-
-      const updatedTodo = await response.json();
-
-      // Update the UI state after marking as completed
-      setUserTodos((prevTodos) =>
-        prevTodos.map((todo) =>
-          todo.id === id
-            ? {
-                ...todo,
-                isCompleted: true,
-                completedAt: new Date().toISOString(),
-              }
-            : todo
-        )
-      );
+      if (!response.ok) throw new Error("Failed to update todo");
+      fetchTodos(token);
     } catch (error) {
       console.error("Error updating todo:", error);
     }
   };
+
   const categorizeTasks = () => {
     const now = new Date();
     const pending = [];
@@ -220,15 +136,11 @@ const Todo = () => {
 
   const { pending, completedOnTime, delayed } = categorizeTasks();
 
-  const formatDate = (date) => {
-    const options = { day: "2-digit", month: "2-digit", year: "numeric" };
-    return new Date(date).toLocaleDateString("en-GB", options);
-  };
-
   return (
     <>
       <div className={styles.mainContainer}>
         <h1 className={styles.todo}>My Todos</h1>
+        <h3>Logged in as: {username}</h3>
         <div>
           <input
             type="text"
@@ -259,91 +171,48 @@ const Todo = () => {
           >
             Logout
           </button>
-          {isEditing && (
-            <button
-              onClick={cancelEdit}
-              style={{ marginLeft: "10px" }}
-              className={styles.btn1}
-            >
-              Undo
-            </button>
-          )}
         </div>
       </div>
-
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-around",
-          margin: "50px",
-        }}
-      >
-        <div className={styles.tasks}>
-          <h2 className={styles.heading}>Pending Tasks</h2>
-          {pending.map((todo) => (
-            <div key={todo.id}>
-              <p className={styles.miniTitle}>{todo.title}</p>
-              <p className={styles.container}>
-                Deadline: {formatDate(todo.deadline)}
-              </p>
-              <div className={styles.buttons}>
-                <button
-                  onClick={() => markTodoDone(todo.id)}
-                  className={styles.btn3}
-                >
-                  Mark as Done
-                </button>
-                <button
-                  onClick={() => deleteTodo(todo.id)}
-                  className={styles.btn4}
-                >
-                  Delete
-                </button>
-                <button
-                  onClick={() => editTodo(todo.id)}
-                  className={styles.btn2}
-                >
-                  Edit
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className={styles.tasks}>
-          <h2 className={styles.heading}>Completed On Time</h2>
-          {completedOnTime.map((todo) => (
-            <div key={todo.id}>
-              <p className={styles.miniTitle}>{todo.title}</p>
-              <p className={styles.container}>
-                Completed At: {formatDate(todo.completedAt)}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        <div className={styles.tasks}>
-          <h2 className={styles.heading}>Delayed Tasks</h2>
-          {delayed.map((todo) => (
-            <div key={todo.id}>
-              <p className={styles.miniTitle}>{todo.title}</p>
-              <p className={styles.container}>
-                Deadline: {formatDate(todo.deadline)}
-              </p>
-              <div className={styles.buttons}>
-                <button
-                  onClick={() => markTodoDone(todo.id)}
-                  className={styles.btn3}
-                >
-                  Mark as Done
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+      <div className={styles.tasksContainer}>
+        <TaskList
+          title="Pending Tasks"
+          tasks={pending}
+          onMarkDone={markTodoDone}
+          onDelete={deleteTodo}
+        />
+        <TaskList title="Completed On Time" tasks={completedOnTime} />
+        <TaskList
+          title="Delayed Tasks"
+          tasks={delayed}
+          onMarkDone={markTodoDone}
+        />
       </div>
     </>
   );
 };
+
+const TaskList = ({ title, tasks, onMarkDone, onDelete }) => (
+  <div className={styles.tasks}>
+    <h2 className={styles.heading}>{title}</h2>
+    {tasks.map((todo) => (
+      <div key={todo.id}>
+        <p className={styles.miniTitle}>{todo.title}</p>
+        <p className={styles.container}>
+          Deadline: {new Date(todo.deadline).toLocaleString()}
+        </p>
+        {onMarkDone && (
+          <button onClick={() => onMarkDone(todo.id)} className={styles.btn3}>
+            Mark as Done
+          </button>
+        )}
+        {onDelete && (
+          <button onClick={() => onDelete(todo.id)} className={styles.btn4}>
+            Delete
+          </button>
+        )}
+      </div>
+    ))}
+  </div>
+);
 
 export default Todo;
