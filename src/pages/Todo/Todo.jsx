@@ -1,16 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { v4 as uuidv4 } from "uuid";
+
 import styles from "./Todo.module.css";
 
 const Todo = () => {
   const navigate = useNavigate();
-  const [currentUser, setCurrentUser] = useState(
-    JSON.parse(localStorage.getItem("loggedInUser"))
-  );
+  // const [currentUser, setCurrentUser] = useState(
+  //   JSON.parse(localStorage.getItem("loggedInUser"))
+  // );
   const [userTodos, setUserTodos] = useState([]);
   const [currentTodo, setCurrentTodo] = useState({
-    id: uuidv4(),
     title: "",
     deadline: "",
     createdAt: new Date().toISOString(),
@@ -20,60 +19,82 @@ const Todo = () => {
   const [previousTodo, setPreviousTodo] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
 
-  useEffect(() => {
-    if (!localStorage.getItem("loggedInUser")) {
-      navigate("/login");
-    }
+  // useEffect(() => {
+  //   if (!localStorage.getItem("loggedInUser")) {
+  //     navigate("/login");
+  //   }
 
-    const todoData = JSON.parse(localStorage.getItem("todoData")) || {};
-    const localUserTodos = todoData[currentUser.email] || [];
-    setUserTodos(localUserTodos);
-  }, []);
-
-  const updateTodo = () => {
+  //   const todoData = JSON.parse(localStorage.getItem("todoData")) || {};
+  //   const localUserTodos = todoData[currentUser.email] || [];
+  //   setUserTodos(localUserTodos);
+  // }, []);
+  const updateTodo = async () => {
     if (currentTodo.title.trim() === "" || currentTodo.deadline.trim() === "")
       return;
 
-    const todoData = JSON.parse(localStorage.getItem("todoData")) || {};
-    const deadlineDate = new Date(currentTodo.deadline);
-    const now = new Date();
-
-    let updatedTodos;
-    if (isEditing) {
-      updatedTodos = userTodos.map((todo) =>
-        todo.id === currentTodo.id
-          ? {
-              ...todo,
-              title: currentTodo.title,
-              deadline: currentTodo.deadline,
-            }
-          : todo
-      );
-      setIsEditing(false);
-    } else {
-      updatedTodos = [
-        ...userTodos,
-        {
-          ...currentTodo,
-          isDelayed: deadlineDate < now && !currentTodo.isCompleted,
-        },
-      ];
+    const token = localStorage.getItem("access_token"); // Ensure token is available
+    if (!token) {
+      navigate("/login");
+      return;
     }
 
-    todoData[currentUser.email] = updatedTodos;
+    try {
+      let response;
+      if (isEditing) {
+        // Send a PUT request to update an existing todo
+        response = await fetch(
+          `http://localhost:8000/update/${currentTodo.id}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              title: currentTodo.title,
+              deadline: currentTodo.deadline,
+              isCompleted: currentTodo.isCompleted,
+            }),
+          }
+        );
+      } else {
+        // Send a POST request to create a new todo
+        response = await fetch("http://localhost:8000/create", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            title: currentTodo.title,
+            deadline: currentTodo.deadline,
+            isCompleted: false,
+          }),
+        });
+      }
 
-    localStorage.setItem("todoData", JSON.stringify(todoData));
-    setUserTodos(updatedTodos);
+      if (!response.ok) {
+        throw new Error("Failed to save todo");
+      }
 
-    setCurrentTodo({
-      id: uuidv4(),
-      title: "",
-      deadline: "",
-      createdAt: new Date().toISOString(),
-      completedAt: null,
-      isCompleted: false,
-    });
-    setPreviousTodo(null);
+      const updatedTodo = await response.json();
+
+      if (isEditing) {
+        // Update UI for edited todo
+        setUserTodos(
+          userTodos.map((todo) =>
+            todo.id === updatedTodo.id ? updatedTodo : todo
+          )
+        );
+      } else {
+        // Add new todo to UI
+        setUserTodos([...userTodos, updatedTodo]);
+      }
+
+      cancelEdit(); // Reset form fields after update
+    } catch (error) {
+      console.error("Error saving todo:", error);
+    }
   };
 
   const editTodo = (id) => {
@@ -83,19 +104,8 @@ const Todo = () => {
     setIsEditing(true);
   };
 
-  // const cancelEdit = () => {
-  //   if (previousTodo) {
-  //     setCurrentTodo(previousTodo);
-  //     setPreviousTodo(null);
-  //   }
-  //   setIsEditing(false);
-  //   setCurrentTodo({});
-  // };
-
   const cancelEdit = () => {
-    // Reset the form fields to empty values
     setCurrentTodo({
-      id: uuidv4(),
       title: "",
       deadline: "",
       createdAt: new Date().toISOString(),
@@ -103,32 +113,77 @@ const Todo = () => {
       isCompleted: false,
     });
     setIsEditing(false);
-    setPreviousTodo(null); // Optionally clear previous todo if needed
+    setPreviousTodo(null);
   };
 
-  const deleteTodo = (id) => {
-    const updatedTodos = userTodos.filter((todo) => todo.id !== id);
-    const todoData = JSON.parse(localStorage.getItem("todoData"));
-    todoData[currentUser.email] = updatedTodos;
-    localStorage.setItem("todoData", JSON.stringify(todoData));
-    setUserTodos(updatedTodos);
+  const deleteTodo = async (id) => {
+    try {
+      const token = localStorage.getItem("access_token"); // Ensure the token is available
+      if (!token) {
+        console.error("No token found, user is not authenticated");
+        return;
+      }
+
+      const response = await fetch(`http://localhost:8000/delete/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`, // Sending JWT token
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Failed to delete todo");
+      }
+
+      setUserTodos(userTodos.filter((todo) => todo.id !== id));
+    } catch (error) {
+      console.error("Error deleting todo:", error);
+    }
   };
 
-  const markTodoDone = (id) => {
-    const updatedTodos = userTodos.map((todo) =>
-      todo.id === id
-        ? {
-            ...todo,
-            isCompleted: true,
-            completedAt: new Date().toISOString(),
-          }
-        : todo
-    );
+  const markTodoDone = async (id) => {
+    try {
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        console.error("No token found, user is not authenticated");
+        return;
+      }
 
-    const todoData = JSON.parse(localStorage.getItem("todoData"));
-    todoData[currentUser.email] = updatedTodos;
-    localStorage.setItem("todoData", JSON.stringify(todoData));
-    setUserTodos(updatedTodos);
+      const response = await fetch(`http://localhost:8000/update/${id}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          isCompleted: true, // This triggers completion in the backend
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Failed to update todo");
+      }
+
+      const updatedTodo = await response.json();
+
+      // Update the UI state after marking as completed
+      setUserTodos((prevTodos) =>
+        prevTodos.map((todo) =>
+          todo.id === id
+            ? {
+                ...todo,
+                isCompleted: true,
+                completedAt: new Date().toISOString(),
+              }
+            : todo
+        )
+      );
+    } catch (error) {
+      console.error("Error updating todo:", error);
+    }
   };
 
   const categorizeTasks = () => {
@@ -149,10 +204,8 @@ const Todo = () => {
         const completedAt = new Date(todo.completedAt);
         if (completedAt <= deadline) {
           completedOnTime.push(todo);
-        } else if (completedAt > deadline) {
-          completedOnTime.push(todo);
         } else {
-          delayed.push(todo);
+          delayed.push(todo); // If completed after deadline, move to delayed
         }
       }
     });

@@ -13,12 +13,6 @@ const Login = () => {
 
   const [errorMessage, setErrorMessage] = useState("");
 
-  // useEffect(() => {
-  //   if (localStorage.getItem("loggedInUser")) {
-  //     navigate("/todo");
-  //   }
-  // }, [navigate]);
-
   const loginUser = async () => {
     try {
       const response = await axios.post(
